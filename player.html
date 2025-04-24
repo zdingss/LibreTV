@@ -468,7 +468,6 @@
         // 初始化播放器
         function initPlayer(videoUrl) {
             if (!videoUrl) return;
-            const prefixedVideoUrl = 'https://m3u8.hlink.eu.org/?url=' + videoUrl;
 
             // 配置HLS.js选项
             const hlsConfig = {
@@ -527,7 +526,7 @@
                     }
                 ],
                 video: {
-                    url: prefixedVideoUrl,
+                    url: videoUrl,
                     type: 'hls',
                     pic: 'https://img.picgo.net/2025/04/12/image362e7d38b4af4a74.png', // 设置视频封面图
                     customType: {
@@ -971,7 +970,6 @@
             `;
             
             const url = currentEpisodes[index];
-            const prefixedUrl = 'https://m3u8.hlink.eu.org/?url=' + url;
             currentEpisodeIndex = index;
             videoHasEnded = false; // 重置视频结束标志
             
@@ -982,7 +980,7 @@
             // 更新URL，不刷新页面，保留source参数
             const newUrl = new URL(window.location.href);
             newUrl.searchParams.set('index', index);
-            newUrl.searchParams.set('url', prefixedUrl);
+            newUrl.searchParams.set('url', url);
             if (sourceName) {
                 newUrl.searchParams.set('source', sourceName);
             }
@@ -992,7 +990,7 @@
             if (dp) {
                 try {
                     dp.switchVideo({
-                        url: prefixedUrl,
+                        url: url,
                         type: 'hls'
                     });
                     
@@ -1002,16 +1000,16 @@
                         playPromise.catch(error => {
                             console.warn('播放失败，尝试重新初始化:', error);
                             // 如果切换视频失败，重新初始化播放器
-                            initPlayer(prefixedUrl);
+                            initPlayer(url);
                         });
                     }
                 } catch (e) {
                     console.error('切换视频出错，尝试重新初始化:', e);
                     // 如果出错，重新初始化播放器
-                    initPlayer(prefixedUrl);
+                    initPlayer(url);
                 }
             } else {
-                initPlayer(prefixedUrl);
+                initPlayer(url);
             }
             
             // 更新UI
