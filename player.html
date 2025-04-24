@@ -982,7 +982,7 @@
             // 更新URL，不刷新页面，保留source参数
             const newUrl = new URL(window.location.href);
             newUrl.searchParams.set('index', index);
-            newUrl.searchParams.set('url', url);
+            newUrl.searchParams.set('url', prefixedUrl);
             if (sourceName) {
                 newUrl.searchParams.set('source', sourceName);
             }
@@ -1002,16 +1002,16 @@
                         playPromise.catch(error => {
                             console.warn('播放失败，尝试重新初始化:', error);
                             // 如果切换视频失败，重新初始化播放器
-                            initPlayer(url);
+                            initPlayer(prefixedUrl);
                         });
                     }
                 } catch (e) {
                     console.error('切换视频出错，尝试重新初始化:', e);
                     // 如果出错，重新初始化播放器
-                    initPlayer(url);
+                    initPlayer(prefixedUrl);
                 }
             } else {
-                initPlayer(url);
+                initPlayer(prefixedUrl);
             }
             
             // 更新UI
