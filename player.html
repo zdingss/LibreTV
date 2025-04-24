@@ -468,6 +468,7 @@
         // 初始化播放器
         function initPlayer(videoUrl) {
             if (!videoUrl) return;
+            const prefixedVideoUrl = 'https://m3u8.hlink.eu.org/?url=' + videoUrl;
 
             // 配置HLS.js选项
             const hlsConfig = {
@@ -970,6 +971,7 @@
             `;
             
             const url = currentEpisodes[index];
+            const prefixedUrl = 'https://m3u8.hlink.eu.org/?url=' + url;
             currentEpisodeIndex = index;
             videoHasEnded = false; // 重置视频结束标志
             
@@ -990,7 +992,7 @@
             if (dp) {
                 try {
                     dp.switchVideo({
-                        url: url,
+                        url: prefixedUrl,
                         type: 'hls'
                     });
                     
