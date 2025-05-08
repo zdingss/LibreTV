@@ -1,5 +1,5 @@
 // 全局变量
-let selectedAPIs = JSON.parse(localStorage.getItem('selectedAPIs') || '["heimuer", "dbzy"]'); // 默认选中黑木耳和豆瓣资源
+let selectedAPIs = JSON.parse(localStorage.getItem('selectedAPIs') || '["tyyszy", "bfzy", "ruyi"]'); // 默认选中天涯资源、暴风资源和如意资源
 let customAPIs = JSON.parse(localStorage.getItem('customAPIs') || '[]'); // 存储自定义API列表
 
 // 添加当前播放的集数索引
@@ -27,14 +27,17 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 设置默认API选择（如果是第一次加载）
     if (!localStorage.getItem('hasInitializedDefaults')) {
-        // 仅选择黑木耳源和豆瓣资源
-        selectedAPIs = ["heimuer", "dbzy"];
+        // 仅选择天涯资源、暴风资源和如意资源
+        selectedAPIs = ["tyyszy", "bfzy", "ruyi"];
         localStorage.setItem('selectedAPIs', JSON.stringify(selectedAPIs));
         
         // 默认选中过滤开关
         localStorage.setItem('yellowFilterEnabled', 'true');
         localStorage.setItem(PLAYER_CONFIG.adFilteringStorage, 'true');
         
+        // 默认启用豆瓣功能
+        localStorage.setItem('doubanEnabled', 'true');
+
         // 标记已初始化默认值
         localStorage.setItem('hasInitializedDefaults', 'true');
     }
@@ -64,10 +67,13 @@ function initAPICheckboxes() {
     container.innerHTML = '';
 
     // 添加普通API组标题
+    const normaldiv = document.createElement('div');
+    normaldiv.id = 'normaldiv';
+    normaldiv.className = 'grid grid-cols-2 gap-2';
     const normalTitle = document.createElement('div');
     normalTitle.className = 'api-group-title';
     normalTitle.textContent = '普通资源';
-    container.appendChild(normalTitle);
+    normaldiv.appendChild(normalTitle);
     
     // 创建普通API源的复选框
     Object.keys(API_SITES).forEach(apiKey => {
@@ -85,7 +91,7 @@ function initAPICheckboxes() {
                    data-api="${apiKey}">
             <label for="api_${apiKey}" class="ml-1 text-xs text-gray-400 truncate">${api.name}</label>
         `;
-        container.appendChild(checkbox);
+        normaldiv.appendChild(checkbox);
         
         // 添加事件监听器
         checkbox.querySelector('input').addEventListener('change', function() {
@@ -93,10 +99,25 @@ function initAPICheckboxes() {
             checkAdultAPIsSelected();
         });
     });
-    
+    container.appendChild(normaldiv);
+
+    // 添加成人API列表
+    addAdultAPI();
+
+    // 初始检查成人内容状态
+    checkAdultAPIsSelected();
+}
+
+// 添加成人API列表
+function addAdultAPI() {
     // 仅在隐藏设置为false时添加成人API组
-    if (!HIDE_BUILTIN_ADULT_APIS) {
+    if (!HIDE_BUILTIN_ADULT_APIS && (localStorage.getItem('yellowFilterEnabled') === 'false')) {
+        const container = document.getElementById('apiCheckboxes');
+
         // 添加成人API组标题
+        const adultdiv = document.createElement('div');
+        adultdiv.id = 'adultdiv';
+        adultdiv.className = 'grid grid-cols-2 gap-2';
         const adultTitle = document.createElement('div');
         adultTitle.className = 'api-group-title adult';
         adultTitle.innerHTML = `黄色资源采集站 <span class="adult-warning">
@@ -104,7 +125,7 @@ function initAPICheckboxes() {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
         </span>`;
-        container.appendChild(adultTitle);
+        adultdiv.appendChild(adultTitle);
         
         // 创建成人API源的复选框
         Object.keys(API_SITES).forEach(apiKey => {
@@ -122,7 +143,7 @@ function initAPICheckboxes() {
                        data-api="${apiKey}">
                 <label for="api_${apiKey}" class="ml-1 text-xs text-pink-400 truncate">${api.name}</label>
             `;
-            container.appendChild(checkbox);
+            adultdiv.appendChild(checkbox);
             
             // 添加事件监听器
             checkbox.querySelector('input').addEventListener('change', function() {
@@ -130,10 +151,8 @@ function initAPICheckboxes() {
                 checkAdultAPIsSelected();
             });
         });
+        container.appendChild(adultdiv);
     }
-    
-    // 初始检查成人内容状态
-    checkAdultAPIsSelected();
 }
 
 // 检查是否有成人API被选中
@@ -525,6 +544,19 @@ function setupEventListeners() {
     if (yellowFilterToggle) {
         yellowFilterToggle.addEventListener('change', function(e) {
             localStorage.setItem('yellowFilterEnabled', e.target.checked);
+
+            // 控制黄色内容接口的显示状态
+            const adultdiv = document.getElementById('adultdiv');
+            if (adultdiv) {
+                if (e.target.checked === true) {
+                    adultdiv.style.display = 'none';
+                } else if (e.target.checked === false) {
+                    adultdiv.style.display = ''
+                }
+            } else {
+                // 添加成人API列表
+                addAdultAPI();
+            }
         });
     }
     
@@ -701,7 +733,7 @@ async function search() {
         // 处理搜索结果过滤：如果启用了黄色内容过滤，则过滤掉分类含有敏感内容的项目
         const yellowFilterEnabled = localStorage.getItem('yellowFilterEnabled') === 'true';
         if (yellowFilterEnabled) {
-            const banned = ['伦理片','门事件','萝莉少女','制服诱惑','国产传媒','cosplay','黑丝诱惑','无码','日本无码','有码','日本有码','SWAG','网红主播', '色情片','同性片','福利视频','福利片'];
+            const banned = ['伦理片','福利','里番动漫','门事件','萝莉少女','制服诱惑','国产传媒','cosplay','黑丝诱惑','无码','日本无码','有码','日本有码','SWAG','网红主播', '色情片','同性片','福利视频','福利片'];
             allResults = allResults.filter(item => {
                 const typeName = item.type_name || '';
                 return !banned.some(keyword => typeName.includes(keyword));
@@ -723,51 +755,53 @@ async function search() {
             const apiUrlAttr = item.api_url ? 
                 `data-api-url="${item.api_url.replace(/"/g, '&quot;')}"` : '';
             
-            // 更紧凑的卡片布局
+            // 修改为水平卡片布局，图片在左侧，文本在右侧，并优化样式
             const hasCover = item.vod_pic && item.vod_pic.startsWith('http');
             
             return `
                 <div class="card-hover bg-[#111] rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-[1.02] h-full shadow-sm hover:shadow-md" 
                      onclick="showDetails('${safeId}','${safeName}','${sourceCode}')" ${apiUrlAttr}>
-                    <div class="flex flex-col h-full">
+                    <div class="flex h-full">
                         ${hasCover ? `
-                        <div class="relative overflow-hidden" style="height: 160px;">
+                        <div class="relative flex-shrink-0 search-card-img-container">
                             <img src="${item.vod_pic}" alt="${safeName}" 
-                                 class="w-full h-full object-cover transition-transform hover:scale-110" 
+                                 class="h-full w-full object-cover transition-transform hover:scale-110" 
                                  onerror="this.onerror=null; this.src='https://via.placeholder.com/300x450?text=无封面'; this.classList.add('object-contain');" 
                                  loading="lazy">
-                            <div class="absolute inset-0 bg-gradient-to-t from-[#111] to-transparent opacity-60"></div>
+                            <div class="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent"></div>
                         </div>` : ''}
                         
                         <div class="p-2 flex flex-col flex-grow">
                             <div class="flex-grow">
-                                <h3 class="text-sm font-semibold mb-1 break-words line-clamp-2 text-center" title="${safeName}">${safeName}</h3>
+                                <h3 class="font-semibold mb-2 break-words line-clamp-2 ${hasCover ? '' : 'text-center'}" title="${safeName}">${safeName}</h3>
                                 
-                                <div class="flex flex-wrap justify-center gap-1 mb-1">
+                                <div class="flex flex-wrap ${hasCover ? '' : 'justify-center'} gap-1 mb-2">
                                     ${(item.type_name || '').toString().replace(/</g, '&lt;') ? 
-                                      `<span class="text-xs py-0 px-1 rounded bg-opacity-20 bg-blue-500 text-blue-300">
+                                      `<span class="text-xs py-0.5 px-1.5 rounded bg-opacity-20 bg-blue-500 text-blue-300">
                                           ${(item.type_name || '').toString().replace(/</g, '&lt;')}
                                       </span>` : ''}
                                     ${(item.vod_year || '') ? 
-                                      `<span class="text-xs py-0 px-1 rounded bg-opacity-20 bg-purple-500 text-purple-300">
+                                      `<span class="text-xs py-0.5 px-1.5 rounded bg-opacity-20 bg-purple-500 text-purple-300">
                                           ${item.vod_year}
                                       </span>` : ''}
                                 </div>
-                                <p class="text-gray-400 text-xs line-clamp-1 overflow-hidden text-center">
+                                <p class="text-gray-400 line-clamp-2 overflow-hidden ${hasCover ? '' : 'text-center'} mb-2">
                                     ${(item.vod_remarks || '暂无介绍').toString().replace(/</g, '&lt;')}
                                 </p>
                             </div>
                             
-                            <div class="flex justify-between items-center mt-1 pt-1 border-t border-gray-800 text-xs">
+                            <div class="flex justify-between items-center mt-1 pt-1 border-t border-gray-800">
                                 ${sourceInfo ? `<div>${sourceInfo}</div>` : '<div></div>'}
+                                <!-- 接口名称过长会被挤变形
                                 <div>
-                                    <span class="text-xs text-gray-500 flex items-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <span class="text-gray-500 flex items-center hover:text-blue-400 transition-colors">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                                         </svg>
                                         播放
                                     </span>
                                 </div>
+                                -->
                             </div>
                         </div>
                     </div>
@@ -855,7 +889,7 @@ async function showDetails(id, vod_name, sourceCode) {
             episodesReversed = false; // 默认正序
             modalContent.innerHTML = `
                 <div class="flex justify-end mb-2">
-                    <button onclick="toggleEpisodeOrder(${sourceCode})" class="px-4 py-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex items-center justify-center space-x-2">
+                    <button onclick="toggleEpisodeOrder('${sourceCode}')" class="px-4 py-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex items-center justify-center space-x-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clip-rule="evenodd" />
                         </svg>
@@ -988,7 +1022,7 @@ function toggleEpisodeOrder(sourceCode) {
     }
     
     // 更新按钮文本和箭头方向
-    const toggleBtn = document.querySelector(`button[onclick="toggleEpisodeOrder(${sourceCode})"]`);
+    const toggleBtn = document.querySelector(`button[onclick="toggleEpisodeOrder('${sourceCode}')"]`);
     if (toggleBtn) {
         toggleBtn.querySelector('span').textContent = episodesReversed ? '正序排列' : '倒序排列';
         const arrowIcon = toggleBtn.querySelector('svg');
